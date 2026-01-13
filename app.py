@@ -5,7 +5,7 @@ import time
 import base64
 
 # ==========================================
-# 1. 基礎設定與 CSS 樣式 (官方特效版)
+# 1. 基礎設定與 CSS 樣式 (終極特效版)
 # ==========================================
 st.set_page_config(
     page_title="寶可夢科技圖鑑 V10.0",
@@ -24,12 +24,16 @@ st.markdown("""
     :root {
         --ui-cyan: #30a7d7;
         --ui-dark-cyan: #005a9e;
-        --screen-bg: #1a1a1a;
         --pokedex-red: #dc0a2d;
     }
 
-    /* App 背景設為深灰 */
-    .stApp { background-color: #333; }
+    /* 🔥 強制設定 App 背景為深黑色 🔥
+       (加上 !important 是為了覆蓋 Streamlit 的預設淺色主題)
+    */
+    .stApp { 
+        background-color: #111 !important; 
+        color: white !important;
+    }
 
     /* 隱藏 Streamlit 預設 Header/Footer */
     header, footer {visibility: hidden;}
@@ -54,52 +58,57 @@ st.markdown("""
     
     /* 1. 螢幕外框 */
     .display-box {
-        background: radial-gradient(circle at center, #2a2a2a 0%, #000 100%);
+        /* 強制深色漸層背景 */
+        background: radial-gradient(circle at center, #2a2a2a 0%, #000 100%) !important;
         border: 2px solid #555;
         border-bottom: 4px solid var(--ui-cyan);
         border-radius: 15px;
         position: relative;
         height: 380px; /* 固定高度，確保特效空間 */
+        width: 100%;
         overflow: hidden;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+        z-index: 0;
     }
 
     /* 2. 背景旋轉光環 (外圈虛線) */
     .ring-outer {
         position: absolute;
-        width: 300px; height: 300px;
-        border: 1px dashed rgba(48, 167, 215, 0.4);
+        width: 280px; height: 280px;
+        /* 加粗線條與顏色，確保可見 */
+        border: 2px dashed rgba(48, 167, 215, 0.8) !important;
         border-radius: 50%;
         top: 50%; left: 50%;
         transform: translate(-50%, -50%);
         animation: spin 30s linear infinite;
         z-index: 1;
+        pointer-events: none; /* 讓滑鼠可以點穿 */
     }
 
     /* 3. 背景旋轉光環 (內圈實線) */
     .ring-inner {
         position: absolute;
-        width: 260px; height: 260px;
-        border: 2px solid rgba(48, 167, 215, 0.6);
-        border-top-color: transparent; 
-        border-bottom-color: transparent;
+        width: 240px; height: 240px;
+        border: 4px solid rgba(48, 167, 215, 0.9) !important;
+        border-top-color: transparent !important; 
+        border-bottom-color: transparent !important;
         border-radius: 50%;
         top: 50%; left: 50%;
         transform: translate(-50%, -50%);
-        animation: spin 15s linear infinite reverse;
+        animation: spin 10s linear infinite reverse;
         z-index: 2;
-        box-shadow: 0 0 15px rgba(48, 167, 215, 0.2);
+        pointer-events: none;
     }
 
     /* 4. 中央發光核心 */
     .core-glow {
         position: absolute;
         width: 200px; height: 200px;
-        background: radial-gradient(circle, rgba(48, 167, 215, 0.25) 0%, transparent 70%);
+        background: radial-gradient(circle, rgba(48, 167, 215, 0.4) 0%, transparent 70%);
         border-radius: 50%;
         top: 50%; left: 50%;
         transform: translate(-50%, -50%);
@@ -110,7 +119,7 @@ st.markdown("""
     .poke-img-style {
         position: relative;
         z-index: 10; 
-        height: 240px;
+        height: 220px;
         max-width: 90%;
         object-fit: contain;
         filter: drop-shadow(0 15px 15px rgba(0,0,0,0.6));
@@ -124,7 +133,7 @@ st.markdown("""
         z-index: 20;
         text-align: left;
     }
-    .tech-id { font-family: 'Courier New', monospace; color: var(--ui-cyan); font-size: 1.3rem; font-weight: bold; letter-spacing: 2px; }
+    .tech-id { font-family: monospace; color: var(--ui-cyan); font-size: 1.3rem; font-weight: bold; letter-spacing: 2px; }
     .tech-name { color: white; font-size: 1.6rem; font-weight: bold; text-shadow: 0 0 8px var(--ui-cyan); margin-top: -5px; }
 
     /* 動畫定義 */
@@ -193,12 +202,11 @@ def get_base64_content(repo, path):
         elif ext == 'gif': mime = 'image/gif'
         elif ext == 'mp3': mime = 'audio/mpeg'
         elif ext == 'wav': mime = 'audio/wav'
-        elif ext == 'opus': mime = 'audio/ogg' # 寬鬆處理
+        elif ext == 'opus': mime = 'audio/ogg'
         else: mime = 'application/octet-stream'
         
         return f"data:{mime};base64,{b64_str}"
     except Exception as e:
-        # st.warning(f"無法讀取檔案 {path}: {e}")
         return None
 
 def upload_to_github(repo, file_bytes, path, commit_message):
@@ -263,6 +271,7 @@ with tab1:
                     img_src = "https://upload.wikimedia.org/wikipedia/commons/5/53/Pok%C3%A9_Ball_icon.svg"
 
                 # 🔥 顯示特效區塊 (HTML/CSS) 🔥
+                # 關鍵修正：在 div 內加入 &nbsp; 確保空標籤不會被瀏覽器折疊
                 st.markdown(f"""
                     <div class="display-box">
                         <div class="info-overlay">
@@ -270,9 +279,9 @@ with tab1:
                             <div class="tech-name">{item['name']}</div>
                         </div>
 
-                        <div class="ring-outer"></div>
-                        <div class="ring-inner"></div>
-                        <div class="core-glow"></div>
+                        <div class="ring-outer">&nbsp;</div>
+                        <div class="ring-inner">&nbsp;</div>
+                        <div class="core-glow">&nbsp;</div>
 
                         <img src="{img_src}" class="poke-img-style">
                     </div>
