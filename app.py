@@ -3,12 +3,13 @@ from github import Github
 import json
 import base64
 import time
+import textwrap # 關鍵：引入 textwrap 防止 HTML 縮排造成亂碼或錯誤
 
 # ==========================================
 # 1. 基礎設定與 CSS 樣式
 # ==========================================
 st.set_page_config(
-    page_title="寶可夢科技圖鑑 V12.0",
+    page_title="寶可夢科技圖鑑 V13.0",
     page_icon="🔴",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -29,7 +30,7 @@ st.markdown("""
         --ui-dark-cyan: #005a9e;
         --screen-bg: #1a1a1a;
         --card-bg: #222;
-        --active-color: #ffd700; /* 選中時的亮黃色 */
+        --active-color: #ffd700;
     }
 
     /* 強制深色背景 */
@@ -66,38 +67,32 @@ st.markdown("""
     .tech-id { font-family: monospace; color: var(--ui-cyan); font-weight: bold; font-size: 1.1rem; letter-spacing: 2px;}
     .tech-name { font-size: 1.8rem; font-weight: bold; color: #fff; text-shadow: 0 0 10px var(--ui-cyan); margin-top: -5px;}
 
-    /* --- [修改 1] 移除旋轉虛線，只保留核心光暈 --- */
+    /* --- [修改] 只保留核心光暈，移除所有旋轉圈圈 --- */
     .glow-ring {
         position: absolute; 
         top: 50%; left: 50%; transform: translate(-50%, -50%);
-        width: 180px; height: 180px;
-        background: radial-gradient(circle, rgba(48, 167, 215, 0.6) 0%, transparent 70%);
+        width: 220px; height: 220px;
+        background: radial-gradient(circle, rgba(48, 167, 215, 0.5) 0%, transparent 70%);
         border-radius: 50%; z-index: 1; pointer-events: none;
-        box-shadow: 0 0 30px rgba(48, 167, 215, 0.3);
     }
     
     .pokemon-img-main {
         position: relative; z-index: 10;
-        height: 200px; width: auto; object-fit: contain;
+        height: 220px; width: auto; object-fit: contain;
         filter: drop-shadow(0 0 15px rgba(48, 167, 215, 0.6));
         animation: float 4s ease-in-out infinite;
     }
 
     /* --- 下方清單優化 (手機版適配) --- */
-    /* 隱藏預設按鈕邊框，改用圖片本身作為按鈕 */
     .stButton button {
         width: 100%; 
         border: 1px solid #444; 
         background-color: #222;
         color: #aaa; 
-        padding: 5px 0px; /* 減少內距 */
+        padding: 2px 0px;
         border-radius: 8px; 
         transition: all 0.2s;
-        display: flex; 
-        flex-direction: column; 
-        align-items: center; 
-        justify-content: center;
-        height: 100%;
+        min-height: 40px;
     }
     
     .stButton button:hover {
@@ -105,50 +100,43 @@ st.markdown("""
         color: var(--ui-cyan);
     }
 
-    /* 圖片容器 */
     .icon-container {
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        width: 100%;
+        display: flex; justify-content: center; align-items: center; width: 100%; margin-bottom: 5px;
     }
     
     .list-img {
-        width: 60px; height: 60px; object-fit: contain;
+        width: 55px; height: 55px; object-fit: contain;
         background: #000; border-radius: 50%; 
         border: 2px solid #555; padding: 2px;
-        margin-bottom: 5px;
     }
 
-    /* 選中狀態的高亮框 */
+    /* 選中狀態 */
     .active-border {
         border-color: var(--active-color) !important;
         box-shadow: 0 0 10px var(--active-color);
     }
 
-    /* 編號文字 */
-    .id-text {
-        font-family: monospace; font-size: 0.8rem; font-weight: bold;
-    }
-
-    /* --- [修改 2] 強制手機版多欄排列 --- */
+    /* --- [修改] 手機版強制四欄排列 CSS --- */
     @media (max-width: 576px) {
-        /* 強制 Streamlit 的欄位不換行，改為 Grid 或是 Flex row */
+        /* 強制水平排列不換行 (針對 Streamlit 內部結構) */
         [data-testid="stHorizontalBlock"] {
             display: flex;
-            flex-wrap: wrap !important;
-            gap: 5px !important;
+            flex-wrap: nowrap !important;
+            gap: 2px !important;
         }
         
-        /* 設定每個欄位的寬度：一行四個 (25%) */
+        /* 強制每個欄位寬度為 25% (一行四個) */
         [data-testid="column"] {
-            flex: 0 0 calc(25% - 5px) !important;
+            flex: 0 0 25% !important;
+            max-width: 25% !important;
             min-width: 0 !important;
             padding: 0 !important;
         }
 
-        /* 手機上縮小圖片與文字 */
-        .list-img { width: 45px; height: 45px; }
-        .id-text { font-size: 0.7rem; }
-        .stButton button { padding: 2px 0px; min-height: 70px; }
+        /* 縮小圖片與按鈕 */
+        .list-img { width: 40px; height: 40px; margin-bottom: 2px; }
+        .stButton button { font-size: 0.7rem !important; padding: 0px !important; min-height: 30px; }
+        .stButton button p { font-size: 0.7rem !important; }
     }
 
     @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-8px); } 100% { transform: translateY(0px); } }
@@ -222,7 +210,7 @@ st.markdown("""
         <div class="led red"></div>
         <div class="led yellow"></div>
         <div class="led green"></div>
-        <span style="color:white; font-weight:bold; margin-left:auto; font-family:monospace;">SYSTEM V12.0</span>
+        <span style="color:white; font-weight:bold; margin-left:auto; font-family:monospace;">SYSTEM V13.0</span>
     </div>
 """, unsafe_allow_html=True)
 
@@ -245,17 +233,17 @@ if repo:
         if not main_img_src:
             main_img_src = "https://via.placeholder.com/300x300/000000/30a7d7?text=No+Image"
 
-        # 這裡移除了 rotating-ring 相關的 div
-        html_code = f"""
-<div class="display-box">
-<div class="tech-info">
-<div class="tech-id">ID: {current_item['id']}</div>
-<div class="tech-name">{current_item['name']}</div>
-</div>
-<div class="glow-ring"></div>
-<img src="{main_img_src}" class="pokemon-img-main">
-</div>
-"""
+        # 使用 textwrap.dedent 安全地處理 HTML 縮排，防止亂碼
+        html_code = textwrap.dedent(f"""
+            <div class="display-box">
+                <div class="tech-info">
+                    <div class="tech-id">ID: {current_item['id']}</div>
+                    <div class="tech-name">{current_item['name']}</div>
+                </div>
+                <div class="glow-ring"></div>
+                <img src="{main_img_src}" class="pokemon-img-main">
+            </div>
+        """)
         st.markdown(html_code, unsafe_allow_html=True)
 
         if 'audio_path' in current_item and current_item['audio_path']:
@@ -264,41 +252,39 @@ if repo:
     else:
         st.markdown("""<div class="display-box" style="color:white;">WAITING FOR DATA...</div>""", unsafe_allow_html=True)
 
-    # --- B. 下方清單 (圖示化選單) ---
+    # --- B. 下方清單 (極簡圖示版) ---
     st.markdown("###### ▽ 選擇目標 (SELECT)")
     
+    # 這裡我們手動計算每四個一組，建立 Grid
     with st.container(height=300):
         if data_list:
-            # 計算每行放 4 個 (電腦版也會變成 4 個，比較整齊)
             cols_per_row = 4
             rows = [data_list[i:i + cols_per_row] for i in range(0, len(data_list), cols_per_row)]
 
             for row_items in rows:
                 cols = st.columns(cols_per_row)
                 
+                # 如果這行不滿4個，cols 長度會是 4，row_items 可能小於 4
+                # zip 會自動處理到最短的長度
                 for col, item in zip(cols, row_items):
                     with col:
-                        # 找出原本的 index
                         original_idx = data_list.index(item)
                         
-                        # 判斷是否為當前選中，如果是，加個金色邊框樣式
+                        # 圖片樣式 (選中時加框)
                         img_class = "list-img active-border" if original_idx == st.session_state.selected_index else "list-img"
                         
                         thumb_src = get_image_base64(repo, item['img_path'])
                         if not thumb_src: thumb_src = "https://via.placeholder.com/60"
                         
-                        # 自訂 HTML 顯示圖片與編號 (不顯示名字)
-                        # 我們把 button 的 label 設為空字串，利用 HTML 渲染內容
-                        # 但 Streamlit button 文字不能用 HTML，所以我們用 caption 輔助或純按鈕
-                        # 這裡採用技巧：按鈕文字放編號，上方用 markdown 顯示圖片
-                        
+                        # 1. 顯示圖片 (HTML)
                         st.markdown(f"""
                         <div class="icon-container">
                             <img src="{thumb_src}" class="{img_class}">
                         </div>
                         """, unsafe_allow_html=True)
                         
-                        # 按鈕只顯示 ID，名字太長手機會跑版
+                        # 2. 顯示按鈕 (只顯示編號 No.XXXX)
+                        # key 必須唯一
                         if st.button(f"No.{item['id']}", key=f"btn_{item['id']}"):
                             st.session_state.selected_index = original_idx
                             st.rerun()
