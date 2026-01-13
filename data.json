@@ -4,5 +4,11 @@
         "name": "噴火龍",
         "img_path": "pic/0006_噴火龍.png",
         "audio_path": "wav/0006_噴火龍.opus"
+    },
+    {
+        "id": "0384",
+        "name": "烈空坐",
+        "img_path": "pic/0384_烈空坐.png",
+        "audio_path": "wav/0384_烈空坐.opus"
     }
 ]
