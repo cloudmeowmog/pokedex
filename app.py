@@ -9,7 +9,7 @@ import textwrap
 # 1. 基礎設定與 CSS 樣式
 # ==========================================
 st.set_page_config(
-    page_title="寶可夢科技圖鑑 V14.0",
+    page_title="寶可夢科技圖鑑 V15.0",
     page_icon="🔴",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -48,7 +48,7 @@ st.markdown("""
     .led { width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; border: 1px solid rgba(0,0,0,0.3); }
     .led.red { background: #ff5555; } .led.yellow { background: #ffcc00; } .led.green { background: #55ff55; }
 
-    /* 上方大螢幕 */
+    /* 上方大螢幕顯示區 */
     .display-box {
         background: radial-gradient(circle at center, #2a2a2a 0%, #000 100%);
         border: 2px solid #555; border-bottom: 4px solid var(--ui-cyan);
@@ -63,6 +63,7 @@ st.markdown("""
     .tech-id { font-family: monospace; color: var(--ui-cyan); font-weight: bold; font-size: 1.1rem; letter-spacing: 2px;}
     .tech-name { font-size: 1.8rem; font-weight: bold; color: #fff; text-shadow: 0 0 10px var(--ui-cyan); margin-top: -5px;}
 
+    /* 光環特效 */
     .glow-ring {
         position: absolute; 
         top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -78,78 +79,59 @@ st.markdown("""
         animation: float 4s ease-in-out infinite;
     }
 
-    /* --- [修改] 下方按鈕樣式優化 --- */
+    /* --- [修改] 下方按鈕樣式優化 (文字版) --- */
     .stButton button {
         width: 100%; 
         border: 1px solid #444; 
         background-color: #222;
-        color: #aaa; 
-        padding: 5px 0px;
-        border-radius: 10px; 
+        color: #eee; /* 文字顏色 */
+        padding: 5px 10px;
+        border-radius: 8px; 
         transition: all 0.2s;
         min-height: 50px;
         display: flex; justify-content: center; align-items: center;
+        font-size: 1rem;
+        font-weight: bold;
     }
     
+    /* 滑鼠懸停效果 */
     .stButton button:hover {
         border-color: var(--ui-cyan); background-color: #2a2a2a;
         color: var(--ui-cyan);
         box-shadow: 0 0 10px rgba(48, 167, 215, 0.3);
     }
 
-    /* 圖片容器：置中 */
-    .icon-container {
-        display: flex; justify-content: center; align-items: center; width: 100%; margin-bottom: 2px;
-    }
-    
-    /* 小圖示樣式 */
-    .list-img {
-        width: 80px; /* 加大圖示 */
-        height: 80px; 
-        object-fit: contain;
-        background: #000; 
-        border-radius: 50%; 
-        border: 2px solid #555; 
-        padding: 5px;
-        transition: transform 0.2s;
-    }
+    /* 選中狀態 (透過文字顏色變化) */
+    /* Streamlit 無法直接對單一按鈕加 class，我們用文字前綴符號區分 */
 
-    /* 選中狀態特效 */
-    .active-border {
-        border-color: var(--active-color) !important;
-        box-shadow: 0 0 15px var(--active-color);
-        transform: scale(1.05); /* 稍微放大 */
-    }
-
-    /* --- [修改] 強制雙欄置中 (手機與電腦一致) --- */
-    /* 修改 Streamlit 的欄位行為 */
+    /* --- [重要] 強制雙欄置中 (手機與電腦一致) --- */
+    /* 修改 Streamlit 的 column 行為，讓內容置中 */
     [data-testid="column"] {
         display: flex;
         flex-direction: column;
-        align-items: center; /* 內容置中 */
+        align-items: center; 
         justify-content: center;
     }
 
+    /* 手機版 RWD 設定 */
     @media (max-width: 576px) {
-        /* 手機版強制水平排列不換行 */
+        /* 強制水平排列不換行 */
         [data-testid="stHorizontalBlock"] {
             display: flex;
             flex-wrap: nowrap !important;
-            gap: 5px !important;
+            gap: 8px !important; /* 欄位間距 */
         }
         
-        /* 手機版強制每個欄位 50% 寬度 (兩欄) */
+        /* 強制每個欄位 50% 寬度 (兩欄) */
         [data-testid="column"] {
-            flex: 0 0 50% !important;
-            max-width: 50% !important;
+            flex: 0 0 calc(50% - 4px) !important;
+            max-width: calc(50% - 4px) !important;
             min-width: 0 !important;
-            padding: 0 2px !important;
+            padding: 0 !important;
         }
 
-        /* 手機版圖示微調 */
-        .list-img { width: 60px; height: 60px; }
-        /* 按鈕文字縮小 */
-        .stButton button p { font-size: 0.8rem !important; }
+        /* 手機版字體稍微縮小 */
+        .stButton button p { font-size: 0.9rem !important; }
     }
 
     @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-8px); } 100% { transform: translateY(0px); } }
@@ -223,7 +205,7 @@ st.markdown("""
         <div class="led red"></div>
         <div class="led yellow"></div>
         <div class="led green"></div>
-        <span style="color:white; font-weight:bold; margin-left:auto; font-family:monospace;">SYSTEM V14.0</span>
+        <span style="color:white; font-weight:bold; margin-left:auto; font-family:monospace;">SYSTEM V15.0</span>
     </div>
 """, unsafe_allow_html=True)
 
@@ -264,10 +246,10 @@ if repo:
     else:
         st.markdown("""<div class="display-box" style="color:white;">WAITING FOR DATA...</div>""", unsafe_allow_html=True)
 
-    # --- B. 下方清單 (圖示按鈕化 + 雙欄) ---
+    # --- B. 下方清單 (文字按鈕 + 雙欄) ---
     st.markdown("###### ▽ 選擇目標 (SELECT)")
     
-    with st.container(height=350): # 稍微增加高度方便操作
+    with st.container(height=350):
         if data_list:
             # 設定為 2 欄 (手機與電腦皆維持 2 欄)
             cols_per_row = 2
@@ -280,21 +262,14 @@ if repo:
                     with col:
                         original_idx = data_list.index(item)
                         
-                        # 選中時加上金色邊框
-                        img_class = "list-img active-border" if original_idx == st.session_state.selected_index else "list-img"
+                        # 按鈕文字：編號 + 名稱
+                        # 如果是當前選中的項目，前面加上箭頭符號 ▶ 來標示
+                        label = f"{item['id']} {item['name']}"
+                        if original_idx == st.session_state.selected_index:
+                            label = f"▶ {label}"
                         
-                        thumb_src = get_image_base64(repo, item['img_path'])
-                        if not thumb_src: thumb_src = "https://via.placeholder.com/80"
-                        
-                        # 顯示圖片 (視覺核心)
-                        st.markdown(f"""
-                        <div class="icon-container">
-                            <img src="{thumb_src}" class="{img_class}">
-                        </div>
-                        """, unsafe_allow_html=True)
-                        
-                        # 顯示按鈕 (互動核心)，文字只留編號
-                        if st.button(f"{item['id']}", key=f"btn_{item['id']}"):
+                        # 顯示按鈕
+                        if st.button(label, key=f"btn_{item['id']}"):
                             st.session_state.selected_index = original_idx
                             st.rerun()
 
