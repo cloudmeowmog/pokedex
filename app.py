@@ -3,23 +3,22 @@ from github import Github
 import json
 import base64
 import time
-import textwrap
 
 # ==========================================
 # 1. 基礎設定與 CSS 樣式
 # ==========================================
 st.set_page_config(
-    page_title="寶可夢科技圖鑑 V11.0",
+    page_title="寶可夢科技圖鑑 V11.5",
     page_icon="🔴",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# 初始化 Session State (用來記住目前選的是哪一隻)
+# 初始化 Session State
 if 'selected_index' not in st.session_state:
-    st.session_state.selected_index = 0 # 預設選第一隻
+    st.session_state.selected_index = 0 
 
-# 載入 CSS
+# 載入 CSS (含特效修正與手機板優化)
 st.markdown("""
     <style>
     @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
@@ -29,18 +28,11 @@ st.markdown("""
         --ui-cyan: #30a7d7;
         --ui-dark-cyan: #005a9e;
         --screen-bg: #1a1a1a;
-        --pokedex-red: #dc0a2d;
         --card-bg: #222;
-        --card-border: #444;
     }
 
     /* 強制深色背景 */
-    .stApp { 
-        background-color: #333 !important; 
-        color: white !important;
-    }
-
-    /* 隱藏預設元素 */
+    .stApp { background-color: #333 !important; color: white !important; }
     header, footer {visibility: hidden;}
     .block-container { padding-top: 1rem; padding-bottom: 2rem; }
 
@@ -61,19 +53,12 @@ st.markdown("""
     /* --- 上方大螢幕顯示區 --- */
     .display-box {
         background: radial-gradient(circle at center, #2a2a2a 0%, #000 100%);
-        border: 2px solid #555;
-        border-bottom: 4px solid var(--ui-cyan);
-        border-radius: 10px;
-        position: relative;
-        height: 320px;
-        width: 100%;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
-        margin-bottom: 15px;
+        border: 2px solid #555; border-bottom: 4px solid var(--ui-cyan);
+        border-radius: 10px; position: relative;
+        height: 320px; width: 100%;
+        overflow: hidden; /* 確保光環不超出 */
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        box-shadow: inset 0 0 20px rgba(0,0,0,0.8); margin-bottom: 15px;
     }
 
     /* 科技文字 */
@@ -81,14 +66,19 @@ st.markdown("""
     .tech-id { font-family: monospace; color: var(--ui-cyan); font-weight: bold; font-size: 1.1rem; letter-spacing: 2px;}
     .tech-name { font-size: 1.8rem; font-weight: bold; color: #fff; text-shadow: 0 0 10px var(--ui-cyan); margin-top: -5px;}
 
-    /* 特效圈圈 */
+    /* --- [修復 1] 特效圈圈定位修正 --- */
+    /* 加入 top/left/transform 確保絕對定位的元素會置中 */
     .glow-ring {
-        position: absolute; width: 200px; height: 200px;
+        position: absolute; 
+        top: 50%; left: 50%; transform: translate(-50%, -50%);
+        width: 200px; height: 200px;
         background: radial-gradient(circle, rgba(48, 167, 215, 0.5) 0%, transparent 70%);
         border-radius: 50%; z-index: 1; pointer-events: none;
     }
     .rotating-ring {
-        position: absolute; width: 240px; height: 240px;
+        position: absolute;
+        top: 50%; left: 50%; transform: translate(-50%, -50%);
+        width: 240px; height: 240px;
         border: 2px dashed rgba(48, 167, 215, 0.6);
         border-radius: 50%; animation: spin 30s linear infinite;
         z-index: 2; pointer-events: none;
@@ -101,38 +91,40 @@ st.markdown("""
         animation: float 4s ease-in-out infinite;
     }
 
-    /* --- 下方清單卡片樣式 --- */
-    /* 這裡我們用 Streamlit 的 columns 模擬卡片，主要靠按鈕樣式來修飾 */
-    
+    /* --- 下方清單與按鈕 --- */
     .stButton button {
-        width: 100%;
-        border: 1px solid #444;
-        background-color: #222;
-        color: #eee;
-        text-align: left;
-        padding: 5px 10px;
-        border-radius: 5px;
-        transition: all 0.2s;
+        width: 100%; border: 1px solid #444; background-color: #222;
+        color: #eee; text-align: left; padding: 5px 10px;
+        border-radius: 5px; transition: all 0.2s;
+    }
+    .stButton button:hover {
+        border-color: var(--ui-cyan); background-color: #2a2a2a;
+        color: var(--ui-cyan); box-shadow: 0 0 8px rgba(48, 167, 215, 0.4);
     }
     
-    /* 滑鼠懸停特效 */
-    .stButton button:hover {
-        border-color: var(--ui-cyan);
-        background-color: #2a2a2a;
-        color: var(--ui-cyan);
-        box-shadow: 0 0 8px rgba(48, 167, 215, 0.4);
+    .list-img {
+        width: 50px; height: 50px; object-fit: contain;
+        background: #000; border-radius: 50%; border: 2px solid #555; padding: 2px;
     }
 
-    /* 選中狀態 (透過 Python 判斷加入特效稍微困難，我們用邊框顏色區分) */
-    
-    /* 縮小圖片以放入列表 */
-    .list-img {
-        width: 50px; height: 50px;
-        object-fit: contain;
-        background: #000;
-        border-radius: 50%;
-        border: 2px solid #555;
-        padding: 2px;
+    /* --- [修復 2] 手機版強制雙欄 --- */
+    /* 這裡使用 Media Query 強制覆蓋 Streamlit 的預設 RWD 行為 */
+    @media (max-width: 576px) {
+        [data-testid="stHorizontalBlock"] {
+            flex-direction: row !important; /* 強制水平排列 */
+            flex-wrap: nowrap !important;   /* 禁止換行 */
+        }
+        [data-testid="column"] {
+            width: 50% !important;          /* 強制寬度 50% */
+            flex: 1 1 50% !important;
+            min-width: 0 !important;        /* 允許縮小，防止被內容撐開 */
+            padding: 0 2px !important;      /* 減少間距 */
+        }
+        /* 微調手機版按鈕文字大小，避免太擠 */
+        .stButton button {
+            font-size: 0.8rem;
+            padding: 5px;
+        }
     }
 
     /* 動畫 Keyframes */
@@ -202,111 +194,89 @@ def update_json_in_github(repo, data, sha, commit_message):
 # 3. 主程式介面
 # ==========================================
 
-# 頂部裝飾
 st.markdown("""
     <div class="top-bar">
         <div class="camera-lens"></div>
         <div class="led red"></div>
         <div class="led yellow"></div>
         <div class="led green"></div>
-        <span style="color:white; font-weight:bold; margin-left:auto; font-family:monospace;">SYSTEM V11.0</span>
+        <span style="color:white; font-weight:bold; margin-left:auto; font-family:monospace;">SYSTEM V11.5</span>
     </div>
 """, unsafe_allow_html=True)
 
 repo = get_github_repo()
 
 if repo:
-    # 取得資料列表
     data_list, sha = get_data_from_github(repo)
     
     if not data_list:
         st.warning("資料庫是空的，請展開下方選單新增資料。")
         current_item = None
     else:
-        # 確保索引不超出範圍 (例如刪除資料後)
         if st.session_state.selected_index >= len(data_list):
             st.session_state.selected_index = 0
-            
         current_item = data_list[st.session_state.selected_index]
 
-    # ------------------------------------
-    #  PART A: 上方大螢幕顯示區 (Top Screen)
-    # ------------------------------------
+    # --- A. 上方螢幕顯示區 ---
     if current_item:
-        # 載入大圖 (快取)
         main_img_src = get_image_base64(repo, current_item['img_path'])
         if not main_img_src:
             main_img_src = "https://via.placeholder.com/300x300/000000/30a7d7?text=No+Image"
 
-        # 顯示特效框
-        html_code = textwrap.dedent(f"""
-            <div class="display-box">
-                <div class="tech-info">
-                    <div class="tech-id">ID: {current_item['id']}</div>
-                    <div class="tech-name">{current_item['name']}</div>
-                </div>
-                <div class="glow-ring"></div>
-                <div class="rotating-ring"></div>
-                <img src="{main_img_src}" class="pokemon-img-main">
-            </div>
-        """)
+        # 這裡不使用 textwrap，直接靠左寫 HTML 以避免縮排錯誤
+        # 確保 CSS 中的 .glow-ring 有設定 top/left/transform 才會置中
+        html_code = f"""
+<div class="display-box">
+<div class="tech-info">
+<div class="tech-id">ID: {current_item['id']}</div>
+<div class="tech-name">{current_item['name']}</div>
+</div>
+<div class="glow-ring"></div>
+<div class="rotating-ring"></div>
+<img src="{main_img_src}" class="pokemon-img-main">
+</div>
+"""
         st.markdown(html_code, unsafe_allow_html=True)
 
-        # 播放聲音
         if 'audio_path' in current_item and current_item['audio_path']:
             audio_url = f"https://raw.githubusercontent.com/{st.secrets['github']['repo_name']}/{st.secrets['github']['branch']}/{current_item['audio_path']}"
             st.audio(audio_url)
     else:
-        # 如果沒資料顯示待機畫面
         st.markdown("""<div class="display-box" style="color:white;">WAITING FOR DATA...</div>""", unsafe_allow_html=True)
 
-    # ------------------------------------
-    #  PART B: 下方捲動清單區 (Bottom List)
-    # ------------------------------------
+    # --- B. 下方清單 (強制雙欄) ---
     st.markdown("###### ▽ 選擇目標 (SELECT TARGET)")
     
-    # 使用 container 設定固定高度並允許捲動，模擬圖鑑下方的清單
     with st.container(height=300):
         if data_list:
-            # 建立兩欄式網格
+            # 建立 columns，並透過上面的 CSS 確保手機版也是並排的
             cols = st.columns(2)
             
             for idx, item in enumerate(data_list):
-                # 決定放在左欄還是右欄
                 col = cols[idx % 2]
-                
                 with col:
-                    # 為了做到「圖+按鈕」的卡片效果，我們用 col 再切分
-                    # 左邊小圖 (20%)，右邊按鈕 (80%)
+                    # 卡片佈局
                     sub_c1, sub_c2 = st.columns([1, 3])
                     
                     with sub_c1:
-                        # 小縮圖 (Base64)
                         thumb_src = get_image_base64(repo, item['img_path'])
                         if not thumb_src: thumb_src = "https://via.placeholder.com/50"
-                        
-                        # 顯示圓形小圖
                         st.markdown(f'<img src="{thumb_src}" class="list-img">', unsafe_allow_html=True)
                     
                     with sub_c2:
-                        # 按鈕：顯示 ID 和 名稱
-                        # 如果是當前選中的，可以加個符號標示
                         label = f"{item['id']} {item['name']}"
                         if idx == st.session_state.selected_index:
                             label = f"▶ {label}"
                             
-                        # 當按鈕被點擊，更新 index 並重新執行
                         if st.button(label, key=f"btn_{item['id']}"):
                             st.session_state.selected_index = idx
                             st.rerun()
                     
-                    st.write("") # 間距
+                    st.write("") # 間隔
 
-    # ------------------------------------
-    #  PART C: 新增資料區 (摺疊收納在最下方)
-    # ------------------------------------
+    # --- C. 管理員新增區 ---
     st.markdown("---")
-    with st.expander("🛠️ 管理員模式：新增寶可夢 (ADD NEW DATA)"):
+    with st.expander("🛠️ 管理員模式：新增寶可夢"):
         with st.form("add_pokemon_form", clear_on_submit=True):
             c1, c2 = st.columns(2)
             with c1:
@@ -323,19 +293,16 @@ if repo:
                 if not new_id or not new_name or not new_img:
                     st.warning("⚠️ 請填寫完整資訊")
                 else:
-                    # 檢查重複 ID
                     if any(d['id'] == new_id for d in data_list):
                         st.error(f"編號 {new_id} 已經存在！")
                     else:
                         progress_bar = st.progress(0, text="連線中...")
                         try:
-                            # 上傳圖片
                             progress_bar.progress(30, text="上傳圖片...")
                             img_ext = new_img.name.split('.')[-1]
                             img_path = f"pic/{new_id}_{new_name}.{img_ext}"
                             upload_to_github(repo, new_img.getvalue(), img_path, f"Add img {new_id}")
                             
-                            # 上傳聲音
                             audio_path = ""
                             if new_audio:
                                 progress_bar.progress(60, text="上傳聲音...")
@@ -343,7 +310,6 @@ if repo:
                                 audio_path = f"wav/{new_id}_{new_name}.{audio_ext}"
                                 upload_to_github(repo, new_audio.getvalue(), audio_path, f"Add audio {new_id}")
                             
-                            # 更新 JSON
                             progress_bar.progress(80, text="更新資料庫...")
                             new_entry = {
                                 "id": new_id,
@@ -352,7 +318,7 @@ if repo:
                                 "audio_path": audio_path
                             }
                             data_list.append(new_entry)
-                            data_list.sort(key=lambda x: x['id']) # 自動排序
+                            data_list.sort(key=lambda x: x['id'])
                             
                             update_json_in_github(repo, data_list, sha, f"Add entry {new_id}")
                             
