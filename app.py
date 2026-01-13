@@ -9,7 +9,7 @@ import textwrap
 # 1. 基礎設定與 CSS 樣式
 # ==========================================
 st.set_page_config(
-    page_title="寶可夢科技圖鑑 V15.0",
+    page_title="寶可夢科技圖鑑 V16.0",
     page_icon="🔴",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -79,59 +79,39 @@ st.markdown("""
         animation: float 4s ease-in-out infinite;
     }
 
-    /* --- [修改] 下方按鈕樣式優化 (文字版) --- */
+    /* --- [修改] 單欄按鈕樣式 --- */
     .stButton button {
         width: 100%; 
         border: 1px solid #444; 
         background-color: #222;
-        color: #eee; /* 文字顏色 */
+        color: #eee;
         padding: 5px 10px;
         border-radius: 8px; 
         transition: all 0.2s;
         min-height: 50px;
-        display: flex; justify-content: center; align-items: center;
+        
+        /* 強制文字置中 */
+        display: flex; 
+        justify-content: center; 
+        align-items: center;
+        text-align: center;
+        
         font-size: 1rem;
         font-weight: bold;
+        letter-spacing: 1px;
     }
     
-    /* 滑鼠懸停效果 */
+    /* 滑鼠懸停與選中狀態 */
     .stButton button:hover {
-        border-color: var(--ui-cyan); background-color: #2a2a2a;
+        border-color: var(--ui-cyan); 
+        background-color: #2a2a2a;
         color: var(--ui-cyan);
         box-shadow: 0 0 10px rgba(48, 167, 215, 0.3);
     }
 
-    /* 選中狀態 (透過文字顏色變化) */
-    /* Streamlit 無法直接對單一按鈕加 class，我們用文字前綴符號區分 */
-
-    /* --- [重要] 強制雙欄置中 (手機與電腦一致) --- */
-    /* 修改 Streamlit 的 column 行為，讓內容置中 */
-    [data-testid="column"] {
-        display: flex;
-        flex-direction: column;
-        align-items: center; 
-        justify-content: center;
-    }
-
-    /* 手機版 RWD 設定 */
-    @media (max-width: 576px) {
-        /* 強制水平排列不換行 */
-        [data-testid="stHorizontalBlock"] {
-            display: flex;
-            flex-wrap: nowrap !important;
-            gap: 8px !important; /* 欄位間距 */
-        }
-        
-        /* 強制每個欄位 50% 寬度 (兩欄) */
-        [data-testid="column"] {
-            flex: 0 0 calc(50% - 4px) !important;
-            max-width: calc(50% - 4px) !important;
-            min-width: 0 !important;
-            padding: 0 !important;
-        }
-
-        /* 手機版字體稍微縮小 */
-        .stButton button p { font-size: 0.9rem !important; }
+    /* 修正 Streamlit 容器內邊距，讓列表更緊湊 */
+    .stVerticalBlock {
+        gap: 0.5rem;
     }
 
     @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-8px); } 100% { transform: translateY(0px); } }
@@ -205,7 +185,7 @@ st.markdown("""
         <div class="led red"></div>
         <div class="led yellow"></div>
         <div class="led green"></div>
-        <span style="color:white; font-weight:bold; margin-left:auto; font-family:monospace;">SYSTEM V15.0</span>
+        <span style="color:white; font-weight:bold; margin-left:auto; font-family:monospace;">SYSTEM V16.0</span>
     </div>
 """, unsafe_allow_html=True)
 
@@ -246,32 +226,25 @@ if repo:
     else:
         st.markdown("""<div class="display-box" style="color:white;">WAITING FOR DATA...</div>""", unsafe_allow_html=True)
 
-    # --- B. 下方清單 (文字按鈕 + 雙欄) ---
+    # --- B. 下方清單 (單欄置中文字版) ---
     st.markdown("###### ▽ 選擇目標 (SELECT)")
     
     with st.container(height=350):
         if data_list:
-            # 設定為 2 欄 (手機與電腦皆維持 2 欄)
-            cols_per_row = 2
-            rows = [data_list[i:i + cols_per_row] for i in range(0, len(data_list), cols_per_row)]
-
-            for row_items in rows:
-                cols = st.columns(cols_per_row)
+            # 簡單迴圈，單欄垂直排列
+            for idx, item in enumerate(data_list):
+                # 標籤顯示：編號 + 名稱
+                label = f"{item['id']} {item['name']}"
                 
-                for col, item in zip(cols, row_items):
-                    with col:
-                        original_idx = data_list.index(item)
-                        
-                        # 按鈕文字：編號 + 名稱
-                        # 如果是當前選中的項目，前面加上箭頭符號 ▶ 來標示
-                        label = f"{item['id']} {item['name']}"
-                        if original_idx == st.session_state.selected_index:
-                            label = f"▶ {label}"
-                        
-                        # 顯示按鈕
-                        if st.button(label, key=f"btn_{item['id']}"):
-                            st.session_state.selected_index = original_idx
-                            st.rerun()
+                # 如果選中，加上箭頭標示
+                if idx == st.session_state.selected_index:
+                    label = f"▶  {label}  ◀"
+                
+                # 生成按鈕
+                # use_container_width=True 讓按鈕填滿欄位寬度
+                if st.button(label, key=f"btn_{item['id']}", use_container_width=True):
+                    st.session_state.selected_index = idx
+                    st.rerun()
 
     # --- C. 管理員新增區 ---
     st.markdown("---")
