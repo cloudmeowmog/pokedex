@@ -16,5 +16,11 @@
         "name": "帝牙盧卡",
         "img_path": "pic/0483_帝牙盧卡.png",
         "audio_path": "wav/0483_帝牙盧卡.opus"
+    },
+    {
+        "id": "0484",
+        "name": "帕路奇亞",
+        "img_path": "pic/0484_帕路奇亞.png",
+        "audio_path": "wav/0484_帕路奇亞.opus"
     }
 ]
