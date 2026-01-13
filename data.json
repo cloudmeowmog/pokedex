@@ -1,1 +1,8 @@
-[]
+[
+    {
+        "id": "0006",
+        "name": "噴火龍",
+        "img_path": "pic/0006_噴火龍.png",
+        "audio_path": "wav/0006_噴火龍.opus"
+    }
+]
