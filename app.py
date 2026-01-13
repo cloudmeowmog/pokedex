@@ -8,7 +8,7 @@ import time
 # 1. 基礎設定與 CSS 樣式
 # ==========================================
 st.set_page_config(
-    page_title="寶可夢科技圖鑑 V11.5",
+    page_title="寶可夢科技圖鑑 V12.0",
     page_icon="🔴",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -18,7 +18,7 @@ st.set_page_config(
 if 'selected_index' not in st.session_state:
     st.session_state.selected_index = 0 
 
-# 載入 CSS (含特效修正與手機板優化)
+# 載入 CSS
 st.markdown("""
     <style>
     @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
@@ -29,6 +29,7 @@ st.markdown("""
         --ui-dark-cyan: #005a9e;
         --screen-bg: #1a1a1a;
         --card-bg: #222;
+        --active-color: #ffd700; /* 選中時的亮黃色 */
     }
 
     /* 強制深色背景 */
@@ -56,32 +57,23 @@ st.markdown("""
         border: 2px solid #555; border-bottom: 4px solid var(--ui-cyan);
         border-radius: 10px; position: relative;
         height: 320px; width: 100%;
-        overflow: hidden; /* 確保光環不超出 */
+        overflow: hidden;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         box-shadow: inset 0 0 20px rgba(0,0,0,0.8); margin-bottom: 15px;
     }
 
-    /* 科技文字 */
     .tech-info { margin-bottom: 5px; text-align: center; position: relative; z-index: 20; }
     .tech-id { font-family: monospace; color: var(--ui-cyan); font-weight: bold; font-size: 1.1rem; letter-spacing: 2px;}
     .tech-name { font-size: 1.8rem; font-weight: bold; color: #fff; text-shadow: 0 0 10px var(--ui-cyan); margin-top: -5px;}
 
-    /* --- [修復 1] 特效圈圈定位修正 --- */
-    /* 加入 top/left/transform 確保絕對定位的元素會置中 */
+    /* --- [修改 1] 移除旋轉虛線，只保留核心光暈 --- */
     .glow-ring {
         position: absolute; 
         top: 50%; left: 50%; transform: translate(-50%, -50%);
-        width: 200px; height: 200px;
-        background: radial-gradient(circle, rgba(48, 167, 215, 0.5) 0%, transparent 70%);
+        width: 180px; height: 180px;
+        background: radial-gradient(circle, rgba(48, 167, 215, 0.6) 0%, transparent 70%);
         border-radius: 50%; z-index: 1; pointer-events: none;
-    }
-    .rotating-ring {
-        position: absolute;
-        top: 50%; left: 50%; transform: translate(-50%, -50%);
-        width: 240px; height: 240px;
-        border: 2px dashed rgba(48, 167, 215, 0.6);
-        border-radius: 50%; animation: spin 30s linear infinite;
-        z-index: 2; pointer-events: none;
+        box-shadow: 0 0 30px rgba(48, 167, 215, 0.3);
     }
     
     .pokemon-img-main {
@@ -91,44 +83,74 @@ st.markdown("""
         animation: float 4s ease-in-out infinite;
     }
 
-    /* --- 下方清單與按鈕 --- */
+    /* --- 下方清單優化 (手機版適配) --- */
+    /* 隱藏預設按鈕邊框，改用圖片本身作為按鈕 */
     .stButton button {
-        width: 100%; border: 1px solid #444; background-color: #222;
-        color: #eee; text-align: left; padding: 5px 10px;
-        border-radius: 5px; transition: all 0.2s;
+        width: 100%; 
+        border: 1px solid #444; 
+        background-color: #222;
+        color: #aaa; 
+        padding: 5px 0px; /* 減少內距 */
+        border-radius: 8px; 
+        transition: all 0.2s;
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        justify-content: center;
+        height: 100%;
     }
+    
     .stButton button:hover {
         border-color: var(--ui-cyan); background-color: #2a2a2a;
-        color: var(--ui-cyan); box-shadow: 0 0 8px rgba(48, 167, 215, 0.4);
+        color: var(--ui-cyan);
+    }
+
+    /* 圖片容器 */
+    .icon-container {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        width: 100%;
     }
     
     .list-img {
-        width: 50px; height: 50px; object-fit: contain;
-        background: #000; border-radius: 50%; border: 2px solid #555; padding: 2px;
+        width: 60px; height: 60px; object-fit: contain;
+        background: #000; border-radius: 50%; 
+        border: 2px solid #555; padding: 2px;
+        margin-bottom: 5px;
     }
 
-    /* --- [修復 2] 手機版強制雙欄 --- */
-    /* 這裡使用 Media Query 強制覆蓋 Streamlit 的預設 RWD 行為 */
+    /* 選中狀態的高亮框 */
+    .active-border {
+        border-color: var(--active-color) !important;
+        box-shadow: 0 0 10px var(--active-color);
+    }
+
+    /* 編號文字 */
+    .id-text {
+        font-family: monospace; font-size: 0.8rem; font-weight: bold;
+    }
+
+    /* --- [修改 2] 強制手機版多欄排列 --- */
     @media (max-width: 576px) {
+        /* 強制 Streamlit 的欄位不換行，改為 Grid 或是 Flex row */
         [data-testid="stHorizontalBlock"] {
-            flex-direction: row !important; /* 強制水平排列 */
-            flex-wrap: nowrap !important;   /* 禁止換行 */
+            display: flex;
+            flex-wrap: wrap !important;
+            gap: 5px !important;
         }
+        
+        /* 設定每個欄位的寬度：一行四個 (25%) */
         [data-testid="column"] {
-            width: 50% !important;          /* 強制寬度 50% */
-            flex: 1 1 50% !important;
-            min-width: 0 !important;        /* 允許縮小，防止被內容撐開 */
-            padding: 0 2px !important;      /* 減少間距 */
+            flex: 0 0 calc(25% - 5px) !important;
+            min-width: 0 !important;
+            padding: 0 !important;
         }
-        /* 微調手機版按鈕文字大小，避免太擠 */
-        .stButton button {
-            font-size: 0.8rem;
-            padding: 5px;
-        }
+
+        /* 手機上縮小圖片與文字 */
+        .list-img { width: 45px; height: 45px; }
+        .id-text { font-size: 0.7rem; }
+        .stButton button { padding: 2px 0px; min-height: 70px; }
     }
 
-    /* 動畫 Keyframes */
-    @keyframes spin { 100% { transform: rotate(360deg); } }
     @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-8px); } 100% { transform: translateY(0px); } }
 
     </style>
@@ -200,7 +222,7 @@ st.markdown("""
         <div class="led red"></div>
         <div class="led yellow"></div>
         <div class="led green"></div>
-        <span style="color:white; font-weight:bold; margin-left:auto; font-family:monospace;">SYSTEM V11.5</span>
+        <span style="color:white; font-weight:bold; margin-left:auto; font-family:monospace;">SYSTEM V12.0</span>
     </div>
 """, unsafe_allow_html=True)
 
@@ -223,8 +245,7 @@ if repo:
         if not main_img_src:
             main_img_src = "https://via.placeholder.com/300x300/000000/30a7d7?text=No+Image"
 
-        # 這裡不使用 textwrap，直接靠左寫 HTML 以避免縮排錯誤
-        # 確保 CSS 中的 .glow-ring 有設定 top/left/transform 才會置中
+        # 這裡移除了 rotating-ring 相關的 div
         html_code = f"""
 <div class="display-box">
 <div class="tech-info">
@@ -232,7 +253,6 @@ if repo:
 <div class="tech-name">{current_item['name']}</div>
 </div>
 <div class="glow-ring"></div>
-<div class="rotating-ring"></div>
 <img src="{main_img_src}" class="pokemon-img-main">
 </div>
 """
@@ -244,35 +264,44 @@ if repo:
     else:
         st.markdown("""<div class="display-box" style="color:white;">WAITING FOR DATA...</div>""", unsafe_allow_html=True)
 
-    # --- B. 下方清單 (強制雙欄) ---
-    st.markdown("###### ▽ 選擇目標 (SELECT TARGET)")
+    # --- B. 下方清單 (圖示化選單) ---
+    st.markdown("###### ▽ 選擇目標 (SELECT)")
     
     with st.container(height=300):
         if data_list:
-            # 建立 columns，並透過上面的 CSS 確保手機版也是並排的
-            cols = st.columns(2)
-            
-            for idx, item in enumerate(data_list):
-                col = cols[idx % 2]
-                with col:
-                    # 卡片佈局
-                    sub_c1, sub_c2 = st.columns([1, 3])
-                    
-                    with sub_c1:
+            # 計算每行放 4 個 (電腦版也會變成 4 個，比較整齊)
+            cols_per_row = 4
+            rows = [data_list[i:i + cols_per_row] for i in range(0, len(data_list), cols_per_row)]
+
+            for row_items in rows:
+                cols = st.columns(cols_per_row)
+                
+                for col, item in zip(cols, row_items):
+                    with col:
+                        # 找出原本的 index
+                        original_idx = data_list.index(item)
+                        
+                        # 判斷是否為當前選中，如果是，加個金色邊框樣式
+                        img_class = "list-img active-border" if original_idx == st.session_state.selected_index else "list-img"
+                        
                         thumb_src = get_image_base64(repo, item['img_path'])
-                        if not thumb_src: thumb_src = "https://via.placeholder.com/50"
-                        st.markdown(f'<img src="{thumb_src}" class="list-img">', unsafe_allow_html=True)
-                    
-                    with sub_c2:
-                        label = f"{item['id']} {item['name']}"
-                        if idx == st.session_state.selected_index:
-                            label = f"▶ {label}"
-                            
-                        if st.button(label, key=f"btn_{item['id']}"):
-                            st.session_state.selected_index = idx
+                        if not thumb_src: thumb_src = "https://via.placeholder.com/60"
+                        
+                        # 自訂 HTML 顯示圖片與編號 (不顯示名字)
+                        # 我們把 button 的 label 設為空字串，利用 HTML 渲染內容
+                        # 但 Streamlit button 文字不能用 HTML，所以我們用 caption 輔助或純按鈕
+                        # 這裡採用技巧：按鈕文字放編號，上方用 markdown 顯示圖片
+                        
+                        st.markdown(f"""
+                        <div class="icon-container">
+                            <img src="{thumb_src}" class="{img_class}">
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # 按鈕只顯示 ID，名字太長手機會跑版
+                        if st.button(f"No.{item['id']}", key=f"btn_{item['id']}"):
+                            st.session_state.selected_index = original_idx
                             st.rerun()
-                    
-                    st.write("") # 間隔
 
     # --- C. 管理員新增區 ---
     st.markdown("---")
