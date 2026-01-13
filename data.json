@@ -10,5 +10,11 @@
         "name": "烈空坐",
         "img_path": "pic/0384_烈空坐.png",
         "audio_path": "wav/0384_烈空坐.opus"
+    },
+    {
+        "id": "0483",
+        "name": "帝牙盧卡",
+        "img_path": "pic/0483_帝牙盧卡.png",
+        "audio_path": "wav/0483_帝牙盧卡.opus"
     }
 ]
